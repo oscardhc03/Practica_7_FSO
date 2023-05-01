@@ -1,0 +1,61 @@
+gcc -o bin/procesos sources/procesos.c lib/mmu.o lib/pagefault.o -Iinclude
+gcc -o lib/pagefaultVM.o -c todo/pagefaultVM.c -Iinclude
+todo/pagefaultVM.c: In function ‘pagefault’:
+todo/pagefaultVM.c:42:25: error: invalid type argument of ‘->’ (have ‘int’)
+   42 |     for (i = 0; i < ptlr->numpages; i++)
+      |                         ^~
+todo/pagefaultVM.c:45:17: error: invalid type argument of ‘->’ (have ‘int’)
+   45 |         if (ptlr->ptentry[i].virtualframe == pag_del_proceso)
+      |                 ^~
+todo/pagefaultVM.c:48:26: error: invalid type argument of ‘->’ (have ‘int’)
+   48 |             vframe = ptlr->ptentry[i].virtualframe;
+      |                          ^~
+todo/pagefaultVM.c:52:17: error: invalid type argument of ‘->’ (have ‘int’)
+   52 |             ptlr->ptentry[i].presente = 0;
+      |                 ^~
+todo/pagefaultVM.c:53:17: error: invalid type argument of ‘->’ (have ‘int’)
+   53 |             ptlr->ptentry[i].virtualframe = -1;
+      |                 ^~
+todo/pagefaultVM.c:68:13: error: invalid type argument of ‘->’ (have ‘int’)
+   68 |         ptlr->ptentry[pag_a_expulsar].presente = 0;
+      |             ^~
+todo/pagefaultVM.c:71:17: error: invalid type argument of ‘->’ (have ‘int’)
+   71 |         if (ptlr->ptentry[pag_a_expulsar].modificado)
+      |                 ^~
+todo/pagefaultVM.c:73:27: error: invalid type argument of ‘->’ (have ‘int’)
+   73 |             saveframe(ptlr->ptentry[pag_a_expulsar].frame);
+      |                           ^~
+todo/pagefaultVM.c:74:17: error: invalid type argument of ‘->’ (have ‘int’)
+   74 |             ptlr->ptentry[pag_a_expulsar].modificado = 0;
+      |                 ^~
+todo/pagefaultVM.c:87:23: error: invalid type argument of ‘->’ (have ‘int’)
+   87 |         copyframe(ptlr->ptentry[pag_a_expulsar].frame, vframe);
+      |                       ^~
+todo/pagefaultVM.c:88:13: error: invalid type argument of ‘->’ (have ‘int’)
+   88 |         ptlr->ptentry[pag_a_expulsar].virtualframe = vframe;
+      |             ^~
+todo/pagefaultVM.c:89:9: warning: implicit declaration of function ‘freeframe’; did you mean ‘getfreeframe’? [-Wimplicit-function-declaration]
+   89 |         freeframe(ptlr->ptentry[pag_a_expulsar].frame);
+      |         ^~~~~~~~~
+      |         getfreeframe
+todo/pagefaultVM.c:89:23: error: invalid type argument of ‘->’ (have ‘int’)
+   89 |         freeframe(ptlr->ptentry[pag_a_expulsar].frame);
+      |                       ^~
+todo/pagefaultVM.c:105:9: warning: implicit declaration of function ‘memcpy’ [-Wimplicit-function-declaration]
+  105 |         memcpy(systemframetable[frame].paddress, buffer, PAGESIZE);
+      |         ^~~~~~
+todo/pagefaultVM.c:9:1: note: include ‘<string.h>’ or provide a declaration of ‘memcpy’
+    8 | #include <mmu.h>
+  +++ |+#include <string.h>
+    9 | 
+todo/pagefaultVM.c:105:9: warning: incompatible implicit declaration of built-in function ‘memcpy’ [-Wbuiltin-declaration-mismatch]
+  105 |         memcpy(systemframetable[frame].paddress, buffer, PAGESIZE);
+      |         ^~~~~~
+todo/pagefaultVM.c:105:9: note: include ‘<string.h>’ or provide a declaration of ‘memcpy’
+todo/pagefaultVM.c:109:9: error: invalid type argument of ‘->’ (have ‘int’)
+  109 |     ptlr->ptentry[pag_del_proceso].presente = 1;
+      |         ^~
+todo/pagefaultVM.c:110:9: error: invalid type argument of ‘->’ (have ‘int’)
+  110 |     ptlr->ptentry[pag_del_proceso].frame = frame;
+      |         ^~
+make: *** [Makefile:19: lib/pagefaultVM.o] Error 1
