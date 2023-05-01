@@ -1,0 +1,134 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include <mmu.h>
+
+#define NUMPROCS 4
+#define PAGESIZE 4096
+#define PHISICALMEMORY 12*PAGESIZE 
+#define TOTFRAMES PHISICALMEMORY/PAGESIZE
+#define RESIDENTSETSIZE PHISICALMEMORY/(PAGESIZE*NUMPROCS)
+
+extern char *base;
+extern int framesbegin;
+extern int idproc;
+extern int systemframetablesize;
+extern int ptlr;
+
+extern struct SYSTEMFRAMETABLE *systemframetable;
+extern struct PROCESSPAGETABLE *ptbr;
+
+// Buscar un marco físico libre en el sistema
+int getfreeframe();
+
+// Buscar un frame virtual en memoria secundaria
+int searchvirtualframe();
+
+// Obtener la página más antigua en la memoria
+int getfifo();
+
+int pagefault(char *vaddress) {
+    int i, frame, vframe; 
+    long pag_a_expulsar;
+    int fd;
+    char buffer[PAGESIZE];
+    int pag_del_proceso;
+
+    pag_del_proceso=(long) vaddress>>12;
+    int proc_frame = ptbr[pag_del_proceso].framenumber;
+
+    if(ptbr[pag_del_proceso].framenumber>=framesbegin+TOTFRAMES) {
+        readblock(buffer, ptbr[pag_del_proceso].framenumber);
+        systemframetable[proc_frame].assigned=0;
+    }
+
+    i=countframesassigned();
+
+    if(i>=RESIDENTSETSIZE) {
+        pag_a_expulsar = getfifo();		
+        ptbr[pag_a_expulsar].presente = 0;
+
+        if(ptbr[pag_a_expulsar].modificado == 1) {
+            saveframe(ptbr[pag_a_expulsar].framenumber);
+            ptbr[pag_a_expulsar].modificado = 0;
+        }
+
+        vframe = searchvirtualframe();
+        if(vframe == -1){
+            return(-1);
+        }
+        copyframe(ptbr[pag_a_expulsar].framenumber, vframe);
+        systemframetable[ptbr[pag_a_expulsar].framenumber].assigned = 0;
+        ptbr[pag_a_expulsar].framenumber = vframe;
+    }
+
+    frame = getfreeframe();
+
+    if(frame == -1) {
+        return(-1);
+    }
+
+    if(proc_frame >= framesbegin+TOTFRAMES) {
+        writeblock(buffer, frame);
+        loadframe(frame);
+    }
+   
+    ptbr[pag_del_proceso].presente = 1;
+    ptbr[pag_del_proceso].framenumber = frame;
+
+    return(1);
+}
+
+int searchvirtualframe() {
+    for(int i = framesbegin; i < framesbegin + (systemframetablesize * 2); i++){
+        if(systemframetable[i].assigned == 0){
+            systemframetable[i].assigned=1;
+            return i;
+        }
+    }
+    return -1;
+}
+
+int getfifo() {
+    int i, oldest;
+    unsigned long earliest;
+	
+    i=0;
+    // Ignora las páginas no presentes
+    while(!ptbr[i].presente && i < ptlr)
+        i++;
+    if(i==ptlr)
+        return -1;
+	
+    // Establecer la más antigua detectada hasta ahora
+    earliest = ptbr[i].tarrived;
+    oldest = i;
+	
+    // Recorre la tabla de páginas en busca de la página más antigua (FIFO)
+    for(i=0; i<ptlr; i++){
+        if(ptbr[i].presente && ptbr[i].tarrived < earliest){
+            earliest = ptbr[i].tarrived;
+            oldest = i;
+        }
+    }
+    // Retorna el índice de la página más antigua
+    return oldest;
+}
+
+// Esta función busca un marco físico libre en el sistema
+int getfreeframe() {
+    for(int i = framesbegin; i<framesbegin + systemframetablesize; i++){
+        if(systemframetable[i].assigned == 0){
+            // Si encuentra un marco no asignado, lo marca como asignado y lo retorna
+            systemframetable[i].assigned=1;
+            return i;
+        }
+    }
+    // Si no encuentra ningún marco libre, retorna -1
+    return -1;
+}
+
